@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Making Maps with R</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Courtney Lee" />
+    <meta name="date" content="2019-10-16" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Making Maps with R
+### Courtney Lee
+### Public Policy Institute of California
+### 2019-10-16
+
+---
+
+
+class: inverse, middle, left
+
+# What do we need before building our maps? 
+
+&lt;!-- * shapefiles?  --&gt;
+* working knowledge of R  
+--
+
+* the data we want to visualize  
+--
+
+* an idea of what we want as our result  
+
+
+
+
+
+
+
+
+---
+
+class: inverse, middle 
+
+## A Glimpse of the Data
+
+
+```
+## # A tibble: 10 x 3
+##    ctemacro                        unwgt_n eduattain_aa_pct
+##    &lt;chr&gt;                             &lt;dbl&gt;            &lt;dbl&gt;
+##  1 Northern                           376.            0.566
+##  2 Sacramento Area                    651.            0.546
+##  3 SF Bay Area                       1222.            0.518
+##  4 Santa Clara/Santa Cruz/Monterey    469.            0.465
+##  5 Central Valley/Mother Lode        1059.            0.623
+##  6 Central Coast                      396.            0.552
+##  7 Los Angeles                       2140.            0.482
+##  8 Inland Empire                     1186.            0.555
+##  9 Orange County                      541.            0.400
+## 10 San Diego/Imperial                 810.            0.529
+```
+---
+
+class: inverse, middle 
+
+### One way to visualize the data
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/occ33-barchart-1.png" width="720" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle 
+
+### Map version
+
+&lt;img src="./makemapswithR_slidedeck_191015_files/figure-html/occ33-viridis-1.png" width="70%" height="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+class: inverse, middle
+
+# Libraries we need
+
+
+```r
+library(ggplot2) #plotting engine
+library(maps) #contains outlines
+library(mapdata) #higher resolution outlines
+library(mapproj) #map projections collection
+```
+---
+
+class: inverse, middle
+
+# USA, as a country, in a dataframe
+
+
+```r
+usa &lt;- map_data("usa")
+dim(usa)
+```
+
+```
+# [1] 7243    6
+```
+
+```r
+head(usa)
+```
+
+```
+#        long      lat group order region subregion
+# 1 -101.4078 29.74224     1     1   main      &lt;NA&gt;
+# 2 -101.3906 29.74224     1     2   main      &lt;NA&gt;
+# 3 -101.3620 29.65056     1     3   main      &lt;NA&gt;
+# 4 -101.3505 29.63911     1     4   main      &lt;NA&gt;
+# 5 -101.3219 29.63338     1     5   main      &lt;NA&gt;
+# 6 -101.3047 29.64484     1     6   main      &lt;NA&gt;
+```
+
+---
+
+class: inverse, middle
+
+# USA, dataframe, visualized
+
+.pull-left[
+
+```r
+library(ggplot2)
+usa &lt;- map_data("usa")
+usa_base &lt;- ggplot() +
+  geom_polygon(data = usa, 
+               aes(x = long, 
+                   y = lat, 
+                   group = group
+                   )) +
+  coord_fixed(1.3)
+usa_base
+```
+]
+
+.pull-right[
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-4-1.png" width="504" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+class: inverse, middle
+
+### Change the fill color and projection
+
+
+```r
+library(ggplot2)
+usa &lt;- map_data("usa")
+ggplot() +
+  geom_polygon(data = usa, 
+               aes(x = long, y = lat, group = group), 
+*              fill = "lightgreen", color = "darkgreen") +
+  coord_fixed(1.3) +
+  labs(title = "The 48 Contiguous States of the USA") + 
+* coord_map("conic", lat0 = 30) +
+  theme(panel.background = element_blank(), 
+        axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())
+```
+
+---
+
+class: inverse, middle
+
+### Fixed colors and projections 
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-5-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle
+
+# County Levels 
+
+
+```r
+states &lt;- map_data("state")
+calif &lt;- subset(states, region == "california") 
+# just the lat long points for the state
+
+# county lines
+*ca_counties &lt;- subset(map_data("county"), region == "california")
+
+# plot the state itself 
+ca_base &lt;- ggplot(data = calif, mapping = aes(x = long, y = lat, group = group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(color = "black", fill = "lightgreen") +
+  theme(panel.background = element_blank(),
+        axis.text = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.title = element_blank(), 
+        panel.border = element_blank(), 
+        panel.grid = element_blank())
+
+# plot county lines 
+ca_base + 
+  geom_polygon(data = ca_counties, fill = NA, color = "white") + 
+  geom_polygon(color = "black", fill = NA) 
+```
+
+```r
+  # get state border drawn as top layer
+```
+
+---
+
+class: inverse, middle
+
+### All 58 of California's counties
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-6-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+class: inverse, middle
+
+### Forming County Groups
+
+
+```r
+# attach our county group definition to the lat/longs
+# provided by the `maps` library
+*cts_macro &lt;-  inner_join(x = counties, y = cty_macro)
+
+ca_base + 
+  geom_polygon(data = cts_macro, aes(fill = msaname), 
+               color = "white") + 
+  geom_polygon(color = "black", fill = NA) + 
+   scale_fill_viridis_d(option = "C") +
+  labs(fill = "MSA Regions") + 
+  guides(fill = FALSE)
+```
+
+---
+
+class: inverse, middle
+
+## 34 Metropolitan Statistical Areas
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-7-1.png" width="504" style="display: block; margin: auto;" /&gt;
+Metropolitan Statistical Areas, according to US Bureau of Labor Statistics
+
+---
+
+class: inverse, middle
+
+### Another Definition of County Groups: Fifteen Groups
+(formed by attaching this 15 county group definition to the dataframe found in `map_data::counties`)
+
+
+
+--
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-8-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+Source: California Community Colleges Chancellor's Office 
+
+---
+
+class: inverse, middle
+
+### Consolidating 34 MSAs and 15 CC Regions Together 
+
+
+--
+... into ten regions!  
+
+Now we are able to talk about regional employment demand (via BLS) and supply (how community colleges could address). 
+
+--
+
+&lt;!-- ### Ten County Groups --&gt;
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-9-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle 
+
+### Which regions sees the greatest share of Californians with some college educational attainment, and are employed in the public and protective services sector? 
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-10-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle
+
+### Change that color scheme 
+
+
+```r
+# 33. public and protective services
+occ33 &lt;- occ2sr %&gt;% filter(occsoc_2 == "33" 
+                           &amp; ctemacro != "Statewide")
+cty_occ33 &lt;- inner_join(x = cts_macro, y = occ33, 
+                        by = c("ctemacro" = "ctemacro"))
+
+ca_base + 
+  geom_polygon(data = cty_occ33, aes(fill = eduattain_aa_pct), 
+               color = "white") + 
+* scale_fill_distiller(type = "div", direction = 1,
+                      labels = scales::percent_format(accuracy = 1),
+                      ) + 
+  geom_polygon(color = "black", fill = NA) + #state outline
+  labs(fill = "Percent Some College\nAttainment")
+```
+
+---
+
+class: inverse, middle 
+
+### Change that color scheme 
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-11-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle 
+
+### Change that color scheme, again
+
+
+```r
+# 33. public and protective services
+occ33 &lt;- occ2sr %&gt;% filter(occsoc_2 == "33" 
+                           &amp; ctemacro != "Statewide")
+cty_occ33 &lt;- inner_join(x = cts_macro, y = occ33, 
+                        by = c("ctemacro" = "ctemacro"))
+
+ca_base + 
+  geom_polygon(data = cty_occ33, aes(fill = eduattain_aa_pct), 
+               color = "white") + 
+* scale_fill_viridis_c(option = "D",
+                      labels = scales::percent_format(accuracy = 1),
+                      ) + 
+  geom_polygon(color = "black", fill = NA) + #state outline
+  labs(fill = "Percent Some College\nAttainment")
+```
+
+---
+
+class: inverse, middle 
+
+### Change that color scheme, again 
+
+&lt;img src="makemapswithR_slidedeck_191015_files/figure-html/unnamed-chunk-12-1.png" width="504" style="display: block; margin: auto;" /&gt;
+
+---
+
+class: inverse, middle, left
+
+# Thanks!
+
+Content adapted from [Reproducible Research/Making Maps with R](https://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html). 
+
+Slides are available on **GitHub**:  
+[https://www.github.com/leecourt98/nacis-2019/](https://www.github.com/leecourt98/nacis-2019/).  
+
+Slides created via the R package [xaringan](https://github.com/yihui/xaringan).
+
+
+&lt;!-- class: inverse, center, middle --&gt;
+
+&lt;!-- # What this slide deck covers --&gt;
+&lt;!-- ## YES --&gt;
+&lt;!-- rapid prototyping for static maps, with R --&gt;
+
+&lt;!-- ## NOPE --&gt;
+&lt;!-- leaflet, javascript, etc --&gt;
+
+&lt;!-- --- --&gt;
+
+&lt;!-- class: inverse, middle, left --&gt;
+
+&lt;!-- ## Qualities I like about R's graphics --&gt;
+
+&lt;!-- - Working in the same environment where we wrangled our data!   --&gt;
+&lt;!-- -- --&gt;
+
+&lt;!-- - Super customizable (especially with layers)   --&gt;
+&lt;!-- -- adding a layer is easy, changing a feature is doable! --&gt;
+&lt;!-- -- --&gt;
+
+&lt;!-- - Reproducibility  --&gt;
+&lt;!-- -- I can reproduce my work at a later date and follow it! --&gt; 
+
+&lt;!-- ```{r, echo=FALSE} --&gt;
+&lt;!-- knitr::include_graphics(path = "./slide deck gfx/msa_map_190123.png") --&gt;
+&lt;!-- # to add:  --&gt;
+&lt;!-- # join dataframe of MSA identifiers with counties from `map_data` --&gt;
+&lt;!-- &lt;!-- # no shapefile needed, our geography units are in `map_data` --&gt; --&gt;
+&lt;!-- ```{r, echo=FALSE, out.height="60%", out.width="60%"} --&gt;
+&lt;!-- knitr::include_graphics("./slide deck gfx/cteregions_defn_190122.png") --&gt;
+&lt;!-- # to add:  --&gt;
+&lt;!-- # here's another type of county groups --&gt;
+&lt;!-- ``` --&gt;
+&lt;!-- ```{r, echo=FALSE, out.height="60%", out.width="60%"} --&gt;
+&lt;!-- knitr::include_graphics(path = "./slide deck gfx/ctemacro_defn_190122.png") --&gt;
+&lt;!-- # to add: --&gt;
+&lt;!-- # here's a collection of county groups used in a report. --&gt;
+&lt;!-- ``` --&gt;
+&lt;!-- ``` --&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
